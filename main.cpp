@@ -42,6 +42,7 @@ pair<int ,int> divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers){
     int runs = countRuns(buffers[0]);
     cout<<runs<<"\n";
     buffers[0].reset();
+
     pair<int, int> fib = getFib(runs);
     
     int runCounter = 0;
@@ -138,8 +139,8 @@ void merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fi
         C = (C + 2) % 3;
 
         fib = {fib.second, fib.first - fib.second};
-        cout<<"PHASE "<<phaseCounter<<":\n";
-        printFiles(tapes);
+        cout<<"\nPHASE "<<phaseCounter++<<":\n\n";
+        printFiles(buffers);
         cout<<"\n";
     }
 
@@ -150,9 +151,9 @@ void merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fi
 }
 
 template <typename T>
-void printFiles(vector<File<T>> &tapes){
-    for(auto &tape : tapes){
-        tape.print();
+void printFiles(vector<Buffer<T>> &buffers){
+    for(auto &buffer : buffers){
+        buffer.print();
     }
 }
 
@@ -261,7 +262,7 @@ int main(){
     }
 
     pair<int, int> fibDivision = divide(tapes, buffers);
-    printFiles(tapes);
+    printFiles(buffers);
     merge(tapes, buffers, fibDivision);
 
     cout<<"READS: "<<Buffer<Record>::reads<<"\n";

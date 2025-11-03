@@ -57,6 +57,14 @@ public:
         currRecord = 0;
     }
 
+    void print(){
+        cout<<file.getName()<<":\n";
+        for(int i = currRecord; i<records.size(); i++){
+            cout<<records[i]<<"\n";
+        }
+        file.print();
+    }
+
     void flush(){
         if(records.size() > 0){
             writes++;

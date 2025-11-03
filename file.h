@@ -15,14 +15,20 @@ using namespace std;
 template <typename T>
 class File {
     string filename;
-    fstream file;
+    ifstream reader;
+    ofstream writer;
     int mode;
+    int linesRead = 0;
 
 public:
     File(string filename){
         this->filename = filename;
         mode = IDLE;
-        file.open(filename);
+        createFile();
+    }
+
+    void createFile(){
+        fstream file(filename);
         if(!file.is_open()){
             ofstream create(filename);
             create.close();
@@ -33,13 +39,16 @@ public:
     }
 
     void remove(){
-        if(file.is_open()){
-            file.close();
+        if(mode != IDLE){
+            changeMode(IDLE);
         }
         filesystem::remove(filename);
     }
     
     void clear(){
+        if(mode != IDLE){
+            changeMode(IDLE);
+        }
         ofstream clearing(filename);
         clearing.close();
     }
@@ -51,7 +60,7 @@ public:
 
         vector<T> records;
         T record;
-        while(records.size() < n && file >> record){
+        while(records.size() < n && reader >> record){
             records.push_back(record);
         }
 
@@ -63,23 +72,30 @@ public:
             changeMode(WRITE);
         }
         for(T record : records){
-            file << record << "\n";
+            writer << record << "\n";
         }
     }
 
     void changeMode(int m){
-        mode = m;
-        if(file.is_open()){
-            file.close();
+        if(mode == READ){
+            reader.close();
         }
-        file.open(filename);
+        else if(mode == WRITE){
+            writer.close();
+        }
+        mode = m;
+        if(mode == READ){
+            reader.open(filename, ios::binary);
+        }
+        else if(mode == WRITE){
+            writer.open(filename, ios::app);
+        }
     }
     
     void close(){
-        if(file.is_open()){
-            file.close();
+        if(mode != IDLE){
+            changeMode(IDLE);
         }
-        mode = IDLE;
     }
 
     string getName(){
@@ -87,22 +103,19 @@ public:
     }
 
     void print(){
-        cout<<filename<<":\n";
         if(mode == READ){
-            streampos position = file.tellg();
-            T record;
-            
-            while(file >> record){
+            streampos position = reader.tellg();
+            T record;  
+            while(reader >> record){
                 cout<<record<<"\n";
             }
-
-            file.close();
-            file.open(filename);
-            file.seekg(position);
+            reader.close();
+            reader.open(filename, ios::binary);
+            reader.seekg(position);
         }
         else{
-            if(file.is_open()){
-                file.close();
+            if(mode != IDLE){
+                changeMode(IDLE);
             }
             fstream temp(filename);
             T record;
