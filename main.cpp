@@ -43,6 +43,14 @@ pair<bool, int> convertStringToInt(string s){
     return answer;
 }
 
+template <typename T>
+void copyFile(Buffer<T> &buffer1, Buffer<T> &buffer2){
+    while(auto record = buffer2.next()){
+        buffer1.write(*record);
+    }
+    buffer1.flush();
+}
+
 pair<int, int> getFib(int n){
     pair<int,int> fib = {1, 1};
 
@@ -109,12 +117,12 @@ pair<int ,int> divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, Progra
     }
 
     if(settings.printing){
-        cout<<"DIVIDED FILES:\n\n";
+        cout<<"\nPHASE 1:\n\n";
         printFiles(buffers);
         cout<<"\n";
     }
 
-    cout<<runs<<" "<<fib.first<<" "<<fib.second<<"\n";
+    //cout<<runs<<" "<<fib.first<<" "<<fib.second<<"\n";
 
     return fib;
 }
@@ -185,17 +193,29 @@ void merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fi
 
         fib = {fib.second, fib.first - fib.second};
         if(settings.printing){
-            cout<<"\nPHASE "<<phaseCounter++<<":\n\n";
+            cout<<"\nPHASE "<<++phaseCounter<<":\n\n";
             printFiles(buffers);
             cout<<"\n";
         }
     }
 
-    tapes[B].remove();
-    tapes[C].remove();
-    buffers[A].reset();
+    if(B != 0){
+        tapes[B].remove();
+    }
+    if(C != 0){
+        tapes[C].remove();
+    }
 
-    bool verdict = settings.test.check(tapes[A].getName());
+    buffers[A].reset();
+    if(A != 0){
+        tapes[0].clear();
+        buffers[0].reset();
+        copyFile(buffers[0], buffers[A]);
+        tapes[A].remove();
+        buffers[0].reset();
+    }
+
+    bool verdict = settings.test.check(tapes[0].getName());
 
     if(verdict){
         cout<<"TEST PASSED\n";
