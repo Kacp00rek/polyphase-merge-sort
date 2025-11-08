@@ -6,6 +6,7 @@ struct Record{
     double radius;
 
     static int sortField;
+    static bool asc;
 
     Record(){
         angle = 0;
@@ -19,9 +20,15 @@ struct Record{
 
     bool operator<(const Record &other) const{
         if(sortField == ANGLE){
-            return angle < other.angle;
+            if(asc){
+                return angle < other.angle;
+            }
+            return angle > other.angle;
         }
-        return radius < other.radius;
+        if(asc){
+            return radius < other.radius;
+        }
+        return radius > other.radius;
     }
 
     friend std::ostream& operator<<(std::ostream &os, const Record &r){
@@ -42,3 +49,4 @@ struct Record{
     }
 };
 int Record::sortField;
+bool Record::asc;

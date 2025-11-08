@@ -300,6 +300,7 @@ ProgramInfo menu(){
         }
     }
     bool angle = pickOption("Do you want to sort records by angle or by radius?", {"1", "2"}) == "1";
+    Record::asc = pickOption("Do you want to sort records ascending or descending?", {"1", "2"}) == "1"; 
     Record::sortField = angle ? ANGLE : RADIUS;
     bool printing = pickOption("Do you want to print your files after every phase?", {"Y", "N"}) == "Y";
     bool testing = pickOption("Do you want to check if your file was sorted correctly?", {"Y", "N"}) == "Y";
