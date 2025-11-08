@@ -124,7 +124,5 @@ public:
             }
             temp.close();
         }
-        cout<<"\n";
     }
-
 };

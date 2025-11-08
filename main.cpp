@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include <limits>
+#include <set>
 #include "file.h"
 #include "record.h"
 #include "buffer.h"
@@ -8,40 +10,19 @@
 
 using namespace std;
 
-template <typename T>
 struct ProgramInfo{
     string filename;
     bool printing;
     bool testing;
     int b;
-    Test<T> test;
-    ProgramInfo(string f, bool p, int blockingFactor){
+    ProgramInfo(string f, bool p, int blockingFactor, bool test){
         filename = f;
         printing = p;
         b = blockingFactor;
-        testing = true;
-        if(testing){
-            test = Test<T>(filename);
-        }
+        testing = test;
     }
 
 };
-
-pair<bool, int> convertStringToInt(string s){
-    pair<bool, int> answer = {true, 0};
-    if(s.length() == 0 || s[0] == '0'){
-        answer.first = false;
-        return answer;
-    }
-    for(int i=0;i<s.length();i++){
-        if(!isdigit(s[i])){
-            answer.first = false;
-            break;
-        }
-        answer.second = answer.second * 10 + (int)(s[i] - '0');
-    }
-    return answer;
-}
 
 template <typename T>
 void copyFile(Buffer<T> &buffer1, Buffer<T> &buffer2){
@@ -52,7 +33,7 @@ void copyFile(Buffer<T> &buffer1, Buffer<T> &buffer2){
 }
 
 pair<int, int> getFib(int n){
-    pair<int,int> fib = {1, 1};
+    pair<int,int> fib = {1, 0};
 
     while(fib.first + fib.second < n){
         fib = {fib.first + fib.second, fib.first};
@@ -82,7 +63,7 @@ int countRuns(Buffer<T> &buff){
 }
 
 template <typename T>
-pair<int ,int> divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo<T> &settings){
+pair<int ,int> divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &settings){
     int runs = countRuns(buffers[0]);
     //cout<<runs<<"\n";
     buffers[0].reset();
@@ -117,7 +98,7 @@ pair<int ,int> divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, Progra
     }
 
     if(settings.printing){
-        cout<<"\nPHASE 1:\n\n";
+        cout<<"INITIAL DISTRIBUTION:\n\n";
         printFiles(buffers);
         cout<<"\n";
     }
@@ -128,12 +109,12 @@ pair<int ,int> divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, Progra
 }
 
 template <typename T>
-void merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fib, ProgramInfo<T> &settings){
+int merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fib, ProgramInfo &settings){
     int C = 0;
     int A = 1;
     int B = 2;
 
-    int phaseCounter = 1;
+    int phaseCounter = 0;
 
     while(fib.second > 0){
         bool endOfFileB = false;
@@ -192,8 +173,9 @@ void merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fi
         C = (C + 2) % 3;
 
         fib = {fib.second, fib.first - fib.second};
+        phaseCounter++;
         if(settings.printing){
-            cout<<"\nPHASE "<<++phaseCounter<<":\n\n";
+            cout<<"PHASE "<<phaseCounter<<":\n\n";
             printFiles(buffers);
             cout<<"\n";
         }
@@ -215,14 +197,7 @@ void merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fi
         buffers[0].reset();
     }
 
-    bool verdict = settings.test.check(tapes[0].getName());
-
-    if(verdict){
-        cout<<"TEST PASSED\n";
-    }
-    else{
-        cout<<"TEST FAILED\n";
-    }
+    return phaseCounter;
 
 }
 
@@ -230,6 +205,7 @@ template <typename T>
 void printFiles(vector<Buffer<T>> &buffers){
     for(auto &buffer : buffers){
         buffer.print();
+        cout<<"\n";
     }
 }
 
@@ -249,27 +225,43 @@ void generateData(int N, string filename){
     file.close();
 }
 
-template <typename T>
-ProgramInfo<T> menu(){
-    string answer = "", filename = "";
+string pickOption(string prompt, vector<string> options){
+    string answer;
+    string op = "(" + options[0];
+    for(int i=1;i<options.size();i++){
+        op +=  "/" + options[i];
+    }
+    op += "): ";
 
-    int b;
     while(true){
-        cout<<"What is your desired value for the blocking factor (b)?\n";
-        string temp;
-        cin>>temp;
-        auto ans = convertStringToInt(temp);
-        if(ans.first){
-            b = ans.second;
-            break;
+        cout<<prompt<<" "<<op;
+        cin>>answer;
+        if(find(options.begin(), options.end(), answer) != options.end()){
+            return answer;
         }
     }
+}
 
-    while(answer != "Y" && answer != "N"){
-        cout<<"Do you want to read data from an existing file? (Y/N)\n";
-        cin>>answer;
+int getIntInput(string prompt){
+    int value;
+    while(true){
+        cout<<prompt<<": ";
+        if(cin >> value && value > 0){
+            return value;
+        }
+        cout<<"Invalid input\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
     }
-    if(answer == "Y"){
+}
+
+ProgramInfo menu(){
+    string answer = "", filename = "";
+
+    int b = getIntInput("Set your blocking factor (b)");
+
+    bool existingFile = pickOption("Do you want to read data from an existing file?", {"Y", "N"}) == "Y";   
+    if(existingFile){
         while(true){
             cout<<"Input the name of the file: ";
             cin>>filename;
@@ -283,16 +275,10 @@ ProgramInfo<T> menu(){
     }
     else{
         filename = "input.txt";
-        answer = "";
-        while(answer != "1" && answer != "2"){
-            cout<<"Do you want to generate random data (1) or type the records yourself (2)?\n";
-            cin>>answer;
-        }
+        bool generate = pickOption("Do you want to generate random data or type the records yourself?", {"1", "2"}) == "1";
 
-        if(answer == "1"){
-            int N;
-            cout<<"How many records do you want to generate?\n";
-            cin>>N;
+        if(generate){
+            int N = getIntInput("Number of records to generate");
             generateData(N, filename);
         }
         else{
@@ -313,33 +299,10 @@ ProgramInfo<T> menu(){
             file.close();
         }
     }
-
-    answer = "";
-    while(answer != "1" && answer != "2"){
-        cout<<"Do you want to sort records by angle (1) or by radius (2)?\n";
-        cin>>answer;
-        if(answer == "1"){
-            Record::sortField = ANGLE;
-        }
-        else if(answer == "2"){
-            Record::sortField = RADIUS;
-        }
-    }    
-
-    bool printing;
-    string p = "";
-    while(p != "N" && p != "Y"){
-        cout<<"Do you want to print your files after every phase? (Y/N)\n";
-        cin>>p;
-        if(p == "N"){
-            printing = false;
-        }
-        else if(p == "Y"){
-            printing = true;
-        }
-    }
-
-
+    bool angle = pickOption("Do you want to sort records by angle or by radius?", {"1", "2"}) == "1";
+    Record::sortField = angle ? ANGLE : RADIUS;
+    bool printing = pickOption("Do you want to print your files after every phase?", {"Y", "N"}) == "Y";
+    bool testing = pickOption("Do you want to check if your file was sorted correctly?", {"Y", "N"}) == "Y";
     if(printing){
         cout<<"Here is your file:\n";
         fstream f(filename);
@@ -349,13 +312,13 @@ ProgramInfo<T> menu(){
         }
         f.close();
     }
-
-    return ProgramInfo<T>(filename, printing, b);
+    cout<<"\n";
+    return ProgramInfo(filename, printing, b, testing);
 }
 
 int main(){
 
-    ProgramInfo<Record> settings = menu<Record>();
+    ProgramInfo settings = menu();
 
     int b = settings.b;
     string filename1 = settings.filename;
@@ -373,12 +336,24 @@ int main(){
         buffers.push_back(Buffer<Record>(tapes[i], b));
     }
 
+    Test<Record> test;
+    if(settings.testing){
+        test = Test<Record>(filename1);
+    }
+
+    cout<<"\n--- SORTING BEGIN ---\n";
     pair<int, int> fibDivision = divide(tapes, buffers, settings);
-    merge(tapes, buffers, fibDivision, settings);
+    int phases = merge(tapes, buffers, fibDivision, settings);
+
+    cout<<"\n--- SORTING COMPLETE ---\n";
+    if (settings.testing) {
+        bool ok = test.check(filename1);
+        cout << (ok ? "TEST PASSED\n" : "TEST FAILED\n");
+    }
 
     cout<<"READS: "<<Buffer<Record>::reads<<"\n";
-    cout<<"WRITES: "<<Buffer<Record>::writes;
-
+    cout<<"WRITES: "<<Buffer<Record>::writes<<"\n";
+    cout<<"PHASES: "<<phases;
 
     return 0;
 }
