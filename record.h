@@ -1,3 +1,6 @@
+#include <numbers>
+#include <iostream>
+
 #define ANGLE   0
 #define RADIUS  1
 struct Record{
@@ -5,7 +8,6 @@ struct Record{
     double angle;
     double radius;
 
-    static int sortField;
     static bool asc;
 
     Record(){
@@ -18,17 +20,16 @@ struct Record{
         radius = r;
     }
 
-    bool operator<(const Record &other) const{
-        if(sortField == ANGLE){
-            if(asc){
-                return angle < other.angle;
-            }
-            return angle > other.angle;
-        }
+    double getField() const {
+        return std::numbers::pi * radius * radius * angle / 360;
+    }
+
+    bool operator<(const Record &other) const {
         if(asc){
-            return radius < other.radius;
+            return getField() < other.getField();
         }
-        return radius > other.radius;
+        return getField() > other.getField();
+
     }
 
     friend std::ostream& operator<<(std::ostream &os, const Record &r){
@@ -41,12 +42,8 @@ struct Record{
         return in;
     }
 
-    bool operator==(const Record &other) const{
-        if(sortField == ANGLE){
-            return angle == other.angle;
-        }
-        return radius == other.radius;
+    bool operator==(const Record &other) const {
+        return getField() == other.getField();
     }
 };
-int Record::sortField;
 bool Record::asc;

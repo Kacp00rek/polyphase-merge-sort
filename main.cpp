@@ -181,20 +181,12 @@ int merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fib
         }
     }
 
-    if(B != 0){
-        tapes[B].remove();
-    }
-    if(C != 0){
-        tapes[C].remove();
-    }
+    tapes[B].remove();
+    tapes[C].remove();
 
     buffers[A].reset();
     if(A != 0){
-        tapes[0].clear();
-        buffers[0].reset();
-        copyFile(buffers[0], buffers[A]);
-        tapes[A].remove();
-        buffers[0].reset();
+        tapes[A].rename(tapes[0].getName());
     }
 
     return phaseCounter;
@@ -299,9 +291,8 @@ ProgramInfo menu(){
             file.close();
         }
     }
-    bool angle = pickOption("Do you want to sort records by angle or by radius?", {"1", "2"}) == "1";
     Record::asc = pickOption("Do you want to sort records ascending or descending?", {"1", "2"}) == "1"; 
-    Record::sortField = angle ? ANGLE : RADIUS;
+
     bool printing = pickOption("Do you want to print your files after every phase?", {"Y", "N"}) == "Y";
     bool testing = pickOption("Do you want to check if your file was sorted correctly?", {"Y", "N"}) == "Y";
     if(printing){

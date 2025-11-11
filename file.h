@@ -38,6 +38,11 @@ public:
         }
     }
 
+    void rename(string newName){
+        filesystem::rename(filename, newName);
+        filename = newName;
+    }
+
     void remove(){
         if(mode != IDLE){
             changeMode(IDLE);
