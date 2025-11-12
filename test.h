@@ -42,7 +42,7 @@ public:
                 break;
             }
             if(!(record == data[i])){
-                cout<<"Incorrect record in line "<<i<<"\n";
+                cout<<"Incorrect record in line "<<i+1<<"\n";
                 cout<<record<<" vs "<<data[i]<<"\n";
                 answer = false;
                 break;

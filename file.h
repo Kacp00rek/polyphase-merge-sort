@@ -112,7 +112,7 @@ public:
             streampos position = reader.tellg();
             T record;  
             while(reader >> record){
-                cout<<record<<"\n";
+                cout << record << "\n";
             }
             reader.close();
             reader.open(filename, ios::binary);
@@ -125,7 +125,7 @@ public:
             fstream temp(filename);
             T record;
             while(temp >> record){
-                cout<<record<<"\n";
+                cout << record << "\n";
             }
             temp.close();
         }
