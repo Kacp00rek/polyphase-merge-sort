@@ -2,14 +2,10 @@
 #include <vector>
 #include <random>
 #include <limits>
-#include <set>
 #include "file.h"
 #include "record.h"
 #include "buffer.h"
 #include "test.h"
-
-#define SORTBEGIN   cout<<"\n--- SORTING BEGIN ---\n"
-#define SORTEND     cout<<"\n--- SORTING COMPLETE ---\n"
 
 using namespace std;
 using T = Record;
@@ -72,16 +68,12 @@ void printFiles(vector<Buffer<T>> &buffers){
 void divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &settings, pair<int,int> fib){
 
     int runCounter = 0;
-    bool first = true;
+    optional<T> previous;
     int currTape = 1;
-    T previous;
+
     while(auto temp = buffers[0].next()){
         T record = *temp;
-        if(first){
-            previous = record;
-            first = false;
-        }
-        if(record < previous){
+        if(previous && record < *previous){
             runCounter++;
             if(runCounter == fib.first){
                 currTape++;
@@ -93,8 +85,8 @@ void divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &set
     tapes[0].clear();
     buffers[1].flush();
     buffers[2].flush();
-    for(int i=0;i<3;i++){
-        buffers[i].reset();
+    for(auto &buf : buffers){
+        buf.reset();
     }
 
     if(settings.printing){
@@ -243,18 +235,25 @@ string getStringInput(string prompt){
 }
 
 void inputDataIntoFile(string &filename){
-    cout<<"Input your records (one record is two doubles seperated by a space), to stop writing, enter -1 as one of the values\n\n";
+    string endKeyword = "end";
+    cout<<"Enter your records (one per line), to stop enter '" <<endKeyword<<"'\n";
     ofstream file(filename);       
-    double a, r;
+    string line;
+    getline(cin, line);
     while(true){
-        cin>>a;
-        if(a == -1){
+        cout<<">";
+        if(!getline(cin, line) || line == endKeyword){
             break;
         }
-        cin>>r;
-        file<<a<<" "<<r<<"\n";
+        stringstream ss(line);
+        T record;
+        if(ss >> record){
+            file << record << "\n";
+        }
+        else{
+            cout << "Invalid input\n";
+        }
     }
-
     file.close();
 }
 
@@ -268,41 +267,48 @@ bool testOpenFile(string &filename){
     return false;
 }
 
+string getExistingFilename() {
+    while (true) {
+        string filename = getStringInput("Input the name of your file");
+        if(testOpenFile(filename)){
+            return filename;
+        }
+    }
+}
+
+void createInputFile(string &filename){
+    bool generate = pickOption("Do you want to generate random data or type the records yourself?", {"1", "2"}) == "1";
+
+    if(generate){
+        int N = getIntInput("Number of records to generate");
+        generateData(N, filename);
+    }
+    else{
+        inputDataIntoFile(filename);
+    }
+}
+
 void printInputFile(string &filename){
-    cout<<"Here is your file:\n";
+    cout<<"\nHere is your file:\n";
     fstream f(filename);
-    double a, r;
-    while(f >> a >> r){
-        cout<<a<<" "<<r<<"\n";
+    T record;
+    while(f >> record){
+        cout<<record<<"\n";
     }
     f.close();
 }
 
 ProgramInfo menu(){
-    string filename = "";
-
+    string filename;
     int b = getIntInput("Set your blocking factor (b)");
 
     bool existingFile = pickOption("Do you want to read data from an existing file?", {"Y", "N"}) == "Y";   
     if(existingFile){
-        while(true){
-            filename = getStringInput("Input the name of your file: ");
-            if(testOpenFile(filename)){
-                break;
-            }
-        }
+        filename = getExistingFilename();
     }
     else{
         filename = "input.txt";
-        bool generate = pickOption("Do you want to generate random data or type the records yourself?", {"1", "2"}) == "1";
-
-        if(generate){
-            int N = getIntInput("Number of records to generate");
-            generateData(N, filename);
-        }
-        else{
-            inputDataIntoFile(filename);
-        }
+        createInputFile(filename);
     }
     Record::asc = pickOption("Do you want to sort records ascending or descending?", {"1", "2"}) == "1"; 
     bool printing = pickOption("Do you want to print your files after every phase?", {"Y", "N"}) == "Y";
@@ -342,7 +348,7 @@ SetupResult setup() {
 
 int sort(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &settings){
     
-    SORTBEGIN;
+    cout<<"\n--- SORTING BEGIN ---\n";
     int runs = countRuns(buffers[0]);
     buffers[0].reset();
     pair<int, int> fib = getFib(runs);
@@ -351,7 +357,7 @@ int sort(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &settin
         divide(tapes, buffers, settings, fib);
         phases = merge(tapes, buffers, fib, settings);
     }
-    SORTEND;
+    cout<<"\n--- SORTING COMPLETE ---\n";
 
     return phases;
 }

@@ -38,7 +38,16 @@ struct Record{
     }
 
     friend std::istream& operator>>(std::istream& in, Record& r){
-        in >> r.angle >> r.radius;
+        double ang, rad;
+        if(in >> ang >> rad){
+            if(ang > 0 && ang <= 360 && rad > 0){
+                r.angle = ang;
+                r.radius = rad;
+            }
+            else{
+                in.setstate(std::ios_base::failbit);
+            }
+        }
         return in;
     }
 
