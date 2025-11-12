@@ -8,29 +8,30 @@
 #include "buffer.h"
 #include "test.h"
 
+#define SORTBEGIN   cout<<"\n--- SORTING BEGIN ---\n"
+#define SORTEND     cout<<"\n--- SORTING COMPLETE ---\n"
+
 using namespace std;
+using T = Record;
 
 struct ProgramInfo{
     string filename;
     bool printing;
-    bool testing;
+    optional<Test<T>> test;
     int b;
-    ProgramInfo(string f, bool p, int blockingFactor, bool test){
+    ProgramInfo(string f, bool p, int blockingFactor, optional<Test<T>> t){
         filename = f;
         printing = p;
         b = blockingFactor;
-        testing = test;
+        test = t;
     }
-
 };
 
-template <typename T>
-void copyFile(Buffer<T> &buffer1, Buffer<T> &buffer2){
-    while(auto record = buffer2.next()){
-        buffer1.write(*record);
-    }
-    buffer1.flush();
-}
+struct SetupResult{
+    ProgramInfo settings;
+    vector<File<T>> tapes;
+    vector<Buffer<T>> buffers;
+};
 
 pair<int, int> getFib(int n){
     pair<int,int> fib = {1, 0};
@@ -42,7 +43,6 @@ pair<int, int> getFib(int n){
     return fib;
 }
 
-template <typename T>
 int countRuns(Buffer<T> &buff){
     auto temp = buff.next();
     if(!temp){
@@ -62,16 +62,16 @@ int countRuns(Buffer<T> &buff){
     return counter;
 }
 
-template <typename T>
-pair<int ,int> divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &settings){
-    int runs = countRuns(buffers[0]);
-    //cout<<runs<<"\n";
-    buffers[0].reset();
+void printFiles(vector<Buffer<T>> &buffers){
+    for(auto &buffer : buffers){
+        buffer.print();
+        cout<<"\n";
+    }
+}
 
-    pair<int, int> fib = getFib(runs);
-    
+void divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &settings, pair<int,int> fib){
+
     int runCounter = 0;
-
     bool first = true;
     int currTape = 1;
     T previous;
@@ -102,13 +102,8 @@ pair<int ,int> divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, Progra
         printFiles(buffers);
         cout<<"\n";
     }
-
-    //cout<<runs<<" "<<fib.first<<" "<<fib.second<<"\n";
-
-    return fib;
 }
 
-template <typename T>
 int merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fib, ProgramInfo &settings){
     int C = 0;
     int A = 1;
@@ -119,7 +114,6 @@ int merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fib
     while(fib.second > 0){
         bool endOfFileB = false;
         for(int i=0;i<fib.second;i++){
-            //cout<<i+1<<".\n";
             bool endA = false, endB = endOfFileB;
             optional<T> recA = buffers[A].next();
             T prevA = *recA, prevB;
@@ -193,14 +187,6 @@ int merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fib
 
 }
 
-template <typename T>
-void printFiles(vector<Buffer<T>> &buffers){
-    for(auto &buffer : buffers){
-        buffer.print();
-        cout<<"\n";
-    }
-}
-
 void generateData(int N, string filename){
     random_device rd;
     mt19937_64 gen(rd());
@@ -247,22 +233,63 @@ int getIntInput(string prompt){
     }
 }
 
+string getStringInput(string prompt){
+    string filename;
+    cout<<prompt<<": ";
+
+    cin>>filename;
+
+    return filename;
+}
+
+void inputDataIntoFile(string &filename){
+    cout<<"Input your records (one record is two doubles seperated by a space), to stop writing, enter -1 as one of the values\n\n";
+    ofstream file(filename);       
+    double a, r;
+    while(true){
+        cin>>a;
+        if(a == -1){
+            break;
+        }
+        cin>>r;
+        file<<a<<" "<<r<<"\n";
+    }
+
+    file.close();
+}
+
+bool testOpenFile(string &filename){
+    fstream test(filename);
+    if(test.is_open()){
+        test.close();
+        return true;
+    }
+    cout<<"Wasn't able to open file "<<filename<<"\n";
+    return false;
+}
+
+void printInputFile(string &filename){
+    cout<<"Here is your file:\n";
+    fstream f(filename);
+    double a, r;
+    while(f >> a >> r){
+        cout<<a<<" "<<r<<"\n";
+    }
+    f.close();
+}
+
 ProgramInfo menu(){
-    string answer = "", filename = "";
+    string filename = "";
 
     int b = getIntInput("Set your blocking factor (b)");
 
     bool existingFile = pickOption("Do you want to read data from an existing file?", {"Y", "N"}) == "Y";   
     if(existingFile){
         while(true){
-            cout<<"Input the name of the file: ";
-            cin>>filename;
-            fstream test(filename);
-            if(test.is_open()){
-                test.close();
+            filename = getStringInput("Input the name of your file: ");
+            if(testOpenFile(filename)){
                 break;
             }
-            cout<<"Wasn't able to open file "<<filename<<"\n";
         }
     }
     else{
@@ -274,78 +301,76 @@ ProgramInfo menu(){
             generateData(N, filename);
         }
         else{
-            cout<<"Input your records (one record is two doubles seperated by a space), to stop writing, enter -1\n\n";
-            ofstream file(filename);
-            
-            double a, r;
-
-            while(true){
-                cin>>a;
-                if(a == -1){
-                    break;
-                }
-                cin>>r;
-                file<<a<<" "<<r<<"\n";
-            }
-
-            file.close();
+            inputDataIntoFile(filename);
         }
     }
     Record::asc = pickOption("Do you want to sort records ascending or descending?", {"1", "2"}) == "1"; 
-
     bool printing = pickOption("Do you want to print your files after every phase?", {"Y", "N"}) == "Y";
     bool testing = pickOption("Do you want to check if your file was sorted correctly?", {"Y", "N"}) == "Y";
-    if(printing){
-        cout<<"Here is your file:\n";
-        fstream f(filename);
-        double a, r;
-        while(f >> a >> r){
-            cout<<a<<" "<<r<<"\n";
-        }
-        f.close();
+    
+    optional<Test<T>> test;
+    if(testing){
+        test = Test<T>(filename);
     }
-    cout<<"\n";
-    return ProgramInfo(filename, printing, b, testing);
+
+    if(printing){
+        printInputFile(filename);
+    }
+
+    return ProgramInfo(filename, printing, b, test);
 }
 
-int main(){
-
+SetupResult setup() {
     ProgramInfo settings = menu();
 
-    int b = settings.b;
     string filename1 = settings.filename;
-
     string filename2 = "tape2.txt";
     string filename3 = "tape3.txt";
 
-    vector<File<Record>> tapes;
+    vector<File<T>> tapes;
     tapes.emplace_back(filename1);
     tapes.emplace_back(filename2);
     tapes.emplace_back(filename3);
     
-    vector<Buffer<Record>> buffers;
-    for(int i=0;i<tapes.size();i++){
-        buffers.push_back(Buffer<Record>(tapes[i], b));
+    vector<Buffer<T>> buffers;
+    for(auto &tape : tapes){
+        buffers.emplace_back(tape, settings.b);
     }
 
-    Test<Record> test;
-    if(settings.testing){
-        test = Test<Record>(filename1);
+    return {move(settings), move(tapes), move(buffers)};
+}
+
+int sort(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &settings){
+    
+    SORTBEGIN;
+    int runs = countRuns(buffers[0]);
+    buffers[0].reset();
+    pair<int, int> fib = getFib(runs);
+    int phases = 0;
+    if(fib.second != 0){
+        divide(tapes, buffers, settings, fib);
+        phases = merge(tapes, buffers, fib, settings);
     }
+    SORTEND;
 
-    cout<<"\n--- SORTING BEGIN ---\n";
-    pair<int, int> fibDivision = divide(tapes, buffers, settings);
-    int phases = merge(tapes, buffers, fibDivision, settings);
+    return phases;
+}
 
-    cout<<"\n--- SORTING COMPLETE ---\n";
-    if (settings.testing) {
-        bool ok = test.check(filename1);
+void stats(ProgramInfo &settings, int phases){
+    if(settings.test){
+        bool ok = settings.test->check(settings.filename);
         cout << (ok ? "TEST PASSED\n" : "TEST FAILED\n");
     }
-
-    cout<<"READS: "<<Buffer<Record>::reads<<"\n";
-    cout<<"WRITES: "<<Buffer<Record>::writes<<"\n";
+    cout<<"READS: "<<Buffer<T>::reads<<"\n";
+    cout<<"WRITES: "<<Buffer<T>::writes<<"\n";
     cout<<"PHASES: "<<phases;
+}
+
+int main(){
+
+    auto [settings, tapes, buffers] = setup();
+    int phases = sort(tapes, buffers, settings);
+    stats(settings, phases);
 
     return 0;
 }
