@@ -41,7 +41,7 @@ public:
                 answer = false;
                 break;
             }
-            if(!(record == data[i])){
+            if(record.getField() != data[i].getField()){
                 cout<<"Incorrect record in line "<<i+1<<"\n";
                 cout<<record<<" vs "<<data[i]<<"\n";
                 answer = false;

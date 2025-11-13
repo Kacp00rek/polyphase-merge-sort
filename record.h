@@ -1,14 +1,14 @@
 #include <numbers>
 #include <iostream>
 
-#define ANGLE   0
-#define RADIUS  1
+enum SortingMode {ASC, DESC};
+
 struct Record{
 
     double angle;
     double radius;
 
-    static bool asc;
+    static SortingMode mode;
 
     Record(){
         angle = 0;
@@ -25,7 +25,7 @@ struct Record{
     }
 
     bool operator<(const Record &other) const {
-        if(asc){
+        if(mode == ASC){
             return getField() < other.getField();
         }
         return getField() > other.getField();
@@ -55,4 +55,4 @@ struct Record{
         return getField() == other.getField();
     }
 };
-bool Record::asc;
+SortingMode Record::mode;

@@ -8,14 +8,14 @@
 #include "test.h"
 
 using namespace std;
-using T = Record;
+using RecordType = Record;
 
 struct ProgramInfo{
     string filename;
     bool printing;
-    optional<Test<T>> test;
+    optional<Test<RecordType>> test;
     int b;
-    ProgramInfo(string f, bool p, int blockingFactor, optional<Test<T>> t){
+    ProgramInfo(string f, bool p, int blockingFactor, optional<Test<RecordType>> t){
         filename = f;
         printing = p;
         b = blockingFactor;
@@ -25,8 +25,8 @@ struct ProgramInfo{
 
 struct SetupResult{
     ProgramInfo settings;
-    vector<File<T>> tapes;
-    vector<Buffer<T>> buffers;
+    vector<File<RecordType>> tapes;
+    vector<Buffer<RecordType>> buffers;
 };
 
 pair<int, int> getFib(int n){
@@ -39,17 +39,17 @@ pair<int, int> getFib(int n){
     return fib;
 }
 
-int countRuns(Buffer<T> &buff){
+int countRuns(Buffer<RecordType> &buff){
     auto temp = buff.next();
     if(!temp){
         return 0;
     }
 
-    T previous = *temp;
+    RecordType previous = *temp;
     int counter = 1;
 
     while(auto temp = buff.next()){
-        T record = *temp;
+        RecordType record = *temp;
         if(record < previous){
             counter++;  
         }
@@ -58,21 +58,21 @@ int countRuns(Buffer<T> &buff){
     return counter;
 }
 
-void printFiles(vector<Buffer<T>> &buffers){
+void printFiles(vector<Buffer<RecordType>> &buffers){
     for(auto &buffer : buffers){
         buffer.print();
         cout << "\n";
     }
 }
 
-void divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &settings, pair<int,int> fib){
+void divide(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, ProgramInfo &settings, pair<int,int> fib){
 
     int runCounter = 0;
-    optional<T> previous;
+    optional<RecordType> previous;
     int currTape = 1;
 
     while(auto temp = buffers[0].next()){
-        T record = *temp;
+        RecordType record = *temp;
         if(previous && record < *previous){
             runCounter++;
             if(runCounter == fib.first){
@@ -96,15 +96,15 @@ void divide(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &set
     }
 }
 
-void logPhase(int phase, vector<Buffer<T>>& buffers) {
+void logPhase(int phase, vector<Buffer<RecordType>>& buffers) {
     cout << "PHASE " << phase << ":\n";
     printFiles(buffers);
     cout << "\n";
 }
 
-bool writeAndCheckRunEnd(optional<T> &record, Buffer<T> &src, Buffer<T> &dest){
+bool writeAndCheckRunEnd(optional<RecordType> &record, Buffer<RecordType> &src, Buffer<RecordType> &dest){
     dest.write(*record);
-    T prev = *record;
+    RecordType prev = *record;
     record = src.next();
     if(!record || *record < prev){
         if(record){
@@ -115,12 +115,12 @@ bool writeAndCheckRunEnd(optional<T> &record, Buffer<T> &src, Buffer<T> &dest){
     return false;
 }
 
-void mergeRuns(Buffer<T>& A, Buffer<T>& B, Buffer<T>& dest){
+void mergeRuns(Buffer<RecordType>& A, Buffer<RecordType>& B, Buffer<RecordType>& dest){
 
     bool endA = false;
     bool endB = false;
-    optional<T> recA = A.next();
-    optional<T> recB = B.next();
+    optional<RecordType> recA = A.next();
+    optional<RecordType> recB = B.next();
     if(!recB){
         endB = true;
     }
@@ -136,7 +136,7 @@ void mergeRuns(Buffer<T>& A, Buffer<T>& B, Buffer<T>& dest){
 
 }
 
-void finalizePhase(int &A, int &B, int &C, vector<Buffer<T>> &buffers, vector<File<T>> &tapes, pair<int, int> &fib, int &phaseCounter){
+void finalizePhase(int &A, int &B, int &C, vector<Buffer<RecordType>> &buffers, vector<File<RecordType>> &tapes, pair<int, int> &fib, int &phaseCounter){
     buffers[C].flush();
     buffers[C].reset();
     buffers[B].reset();
@@ -150,7 +150,7 @@ void finalizePhase(int &A, int &B, int &C, vector<Buffer<T>> &buffers, vector<Fi
     phaseCounter++;
 }
 
-int merge(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, pair<int, int> fib, ProgramInfo &settings){
+int merge(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, pair<int, int> fib, ProgramInfo &settings){
     int C = 0, A = 1, B = 2;
     int phaseCounter = 0;
 
@@ -201,7 +201,7 @@ string pickOption(string prompt, vector<string> options){
     op += "): ";
 
     while(true){
-        cout << prompt << "  "<< op;
+        cout << prompt << " "<< op;
         cin>>answer;
         if(find(options.begin(), options.end(), answer) != options.end()){
             return answer;
@@ -243,7 +243,7 @@ void inputDataIntoFile(string &filename){
             break;
         }
         stringstream ss(line);
-        T record;
+        RecordType record;
         if(ss >> record){
             file << record << "\n";
         }
@@ -288,7 +288,7 @@ void createInputFile(string &filename){
 void printInputFile(string &filename){
     cout<<"\nHere is your file:\n";
     fstream f(filename);
-    T record;
+    RecordType record;
     while(f >> record){
         cout << record << "\n";
     }
@@ -307,13 +307,14 @@ ProgramInfo menu(){
         filename = "input.txt";
         createInputFile(filename);
     }
-    Record::asc = pickOption("Do you want to sort records ascending or descending?", {"1", "2"}) == "1"; 
+    bool ascending = pickOption("Do you want to sort records ascending or descending?", {"1", "2"}) == "1"; 
+    RecordType::mode = ascending ? ASC : DESC;
     bool printing = pickOption("Do you want to print your files after every phase?", {"y", "n"}) == "y"; 
     bool testing = pickOption("Do you want to check if your file was sorted correctly?", {"y", "n"}) == "y"; 
     
-    optional<Test<T>> test;
+    optional<Test<RecordType>> test;
     if(testing){
-        test = Test<T>(filename);
+        test = Test<RecordType>(filename);
     }
 
     if(printing){
@@ -330,12 +331,12 @@ SetupResult setup() {
     string filename2 = "tape2.txt";
     string filename3 = "tape3.txt";
 
-    vector<File<T>> tapes;
+    vector<File<RecordType>> tapes;
     tapes.emplace_back(filename1);
     tapes.emplace_back(filename2);
     tapes.emplace_back(filename3);
     
-    vector<Buffer<T>> buffers;
+    vector<Buffer<RecordType>> buffers;
     for(auto &tape : tapes){
         buffers.emplace_back(tape, settings.b);
     }
@@ -343,7 +344,7 @@ SetupResult setup() {
     return {move(settings), move(tapes), move(buffers)};
 }
 
-int sort(vector<File<T>> &tapes, vector<Buffer<T>> &buffers, ProgramInfo &settings){
+int sort(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, ProgramInfo &settings){
     
     cout << "\n--- SORTING BEGIN ---\n";
     int runs = countRuns(buffers[0]);
@@ -364,8 +365,8 @@ void stats(ProgramInfo &settings, int phases){
         bool ok = settings.test->check(settings.filename);
         cout << (ok ? "TEST PASSED\n" : "TEST FAILED\n");
     }
-    cout << "READS: " <<Buffer<T>::reads<< "\n";
-    cout << "WRITES: " <<Buffer<T>::writes<<"\n";
+    cout << "READS: " <<Buffer<RecordType>::reads<< "\n";
+    cout << "WRITES: " <<Buffer<RecordType>::writes<<"\n";
     cout << "PHASES: " <<phases;
 }
 
