@@ -60,7 +60,8 @@ public:
     void print(){
         cout << file.getName() << ":\n";
         for(int i = currRecord; i<records.size(); i++){
-            cout << records[i] << "\n";
+            records[i].print();
+            cout << "\n";
         }
         file.print();
     }

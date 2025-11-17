@@ -5,7 +5,6 @@
 #include "file.h"
 #include "record.h"
 #include "buffer.h"
-#include "test.h"
 
 using namespace std;
 using RecordType = Record;
@@ -13,13 +12,13 @@ using RecordType = Record;
 struct ProgramInfo{
     string filename;
     bool printing;
-    optional<Test<RecordType>> test;
+    bool beforeAndAfter;
     int b;
-    ProgramInfo(string f, bool p, int blockingFactor, optional<Test<RecordType>> t){
+    ProgramInfo(string f, bool p, int blockingFactor, bool befAndAft){
         filename = f;
         printing = p;
         b = blockingFactor;
-        test = t;
+        beforeAndAfter = befAndAft;
     }
 };
 
@@ -29,7 +28,7 @@ struct SetupResult{
     vector<Buffer<RecordType>> buffers;
 };
 
-pair<int, int> getFib(int n){
+pair<int,int> getFib(int n){
     pair<int,int> fib = {1, 0};
 
     while(fib.first + fib.second < n){
@@ -155,7 +154,7 @@ int merge(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, 
     int phaseCounter = 0;
 
     while(fib.second > 0){
-        for(int i=0;i<fib.second;i++){
+        for(int i = 0; i < fib.second; i++){
             mergeRuns(buffers[A], buffers[B], buffers[C]);
         }
         
@@ -194,18 +193,14 @@ void generateData(int N, string filename){
 
 string pickOption(string prompt, vector<string> options){
     string answer;
-    string op = "(" + options[0];
-    for(int i=1;i<options.size();i++){
-        op +=  "/" + options[i];
-    }
-    op += "): ";
 
     while(true){
-        cout << prompt << " "<< op;
-        cin>>answer;
+        cout << prompt << ": ";
+        cin >> answer;
         if(find(options.begin(), options.end(), answer) != options.end()){
             return answer;
         }
+        cout << "Invalid input\n";
     }
 }
 
@@ -233,7 +228,8 @@ string getStringInput(string prompt){
 
 void inputDataIntoFile(string &filename){
     string endKeyword = "end";
-    cout << "Enter your records (one per line), to stop enter '" << endKeyword << "'\n";
+    cout << "Enter records (one per line). Type '" << endKeyword << "' to finish\n";
+    cout << "Record format: " << RecordType::inputFormat() << "\n";
     ofstream file(filename);       
     string line;
     getline(cin, line);
@@ -265,7 +261,7 @@ bool testOpenFile(string &filename){
 }
 
 string getExistingFilename() {
-    while (true) {
+    while(true){
         string filename = getStringInput("Input the name of your file");
         if(testOpenFile(filename)){
             return filename;
@@ -274,7 +270,7 @@ string getExistingFilename() {
 }
 
 void createInputFile(string &filename){
-    bool generate = pickOption("Do you want to generate random data or type the records yourself?", {"1", "2"}) == "1";
+    bool generate = pickOption("Generate random data or enter records manually? (1 = random, 2 = manual)", {"1", "2"}) == "1";
 
     if(generate){
         int N = getIntInput("Number of records to generate");
@@ -297,9 +293,9 @@ void printInputFile(string &filename){
 
 ProgramInfo menu(){
     string filename;
-    int b = getIntInput("Set your blocking factor (b)");
+    int b = getIntInput("Enter blocking factor b (>0)");
 
-    bool existingFile = pickOption("Do you want to read data from an existing file?", {"y", "n"}) == "y";   
+    bool existingFile = pickOption("Load data from an existing file? (y/n)", {"y", "n"}) == "y";   
     if(existingFile){
         filename = getExistingFilename();
     }
@@ -307,21 +303,16 @@ ProgramInfo menu(){
         filename = "input.txt";
         createInputFile(filename);
     }
-    bool ascending = pickOption("Do you want to sort records ascending or descending?", {"1", "2"}) == "1"; 
+    bool ascending = pickOption("Choose sorting order (1 = ascending, 2 = descending)", {"1", "2"}) == "1"; 
     RecordType::mode = ascending ? ASC : DESC;
-    bool printing = pickOption("Do you want to print your files after every phase?", {"y", "n"}) == "y"; 
-    bool testing = pickOption("Do you want to check if your file was sorted correctly?", {"y", "n"}) == "y"; 
-    
-    optional<Test<RecordType>> test;
-    if(testing){
-        test = Test<RecordType>(filename);
-    }
+    bool printing = pickOption("Do you want to print your files after every phase? (y/n)", {"y", "n"}) == "y"; 
+    bool afterAndBefore = pickOption("Display the file before and after sorting? (y/n)", {"y", "n"}) == "y";
 
-    if(printing){
+    if(afterAndBefore){
         printInputFile(filename);
     }
 
-    return ProgramInfo(filename, printing, b, test);
+    return ProgramInfo(filename, printing, b, afterAndBefore);
 }
 
 SetupResult setup() {
@@ -349,7 +340,7 @@ int sort(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, P
     cout << "\n--- SORTING BEGIN ---\n";
     int runs = countRuns(buffers[0]);
     buffers[0].reset();
-    pair<int, int> fib = getFib(runs);
+    pair<int,int> fib = getFib(runs);
     int phases = 0;
     if(fib.second != 0){
         divide(tapes, buffers, settings, fib);
@@ -357,17 +348,19 @@ int sort(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, P
     }
     cout << "\n--- SORTING COMPLETE ---\n";
 
+    if(settings.beforeAndAfter){
+        string filename = tapes[0].getName();
+        printInputFile(filename);
+        cout << "\n";
+    }
+
     return phases;
 }
 
 void stats(ProgramInfo &settings, int phases){
-    if(settings.test){
-        bool ok = settings.test->check(settings.filename);
-        cout << (ok ? "TEST PASSED\n" : "TEST FAILED\n");
-    }
-    cout << "READS: " <<Buffer<RecordType>::reads<< "\n";
-    cout << "WRITES: " <<Buffer<RecordType>::writes<<"\n";
-    cout << "PHASES: " <<phases;
+    cout << "READS: " << Buffer<RecordType>::reads << "\n";
+    cout << "WRITES: " << Buffer<RecordType>::writes <<"\n";
+    cout << "PHASES: " << phases;
 }
 
 int main(){

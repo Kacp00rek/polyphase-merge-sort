@@ -1,6 +1,8 @@
 #include <numbers>
 #include <iostream>
 
+using namespace std;
+
 enum SortingMode {ASC, DESC};
 
 struct Record{
@@ -21,7 +23,7 @@ struct Record{
     }
 
     double getField() const {
-        return std::numbers::pi * radius * radius * angle / 360;
+        return numbers::pi * radius * radius * angle / 360;
     }
 
     bool operator<(const Record &other) const {
@@ -32,12 +34,12 @@ struct Record{
 
     }
 
-    friend std::ostream& operator<<(std::ostream &os, const Record &r){
+    friend ostream& operator<<(ostream &os, const Record &r){
         os << r.angle << " " << r.radius;
         return os;
     }
 
-    friend std::istream& operator>>(std::istream& in, Record& r){
+    friend istream& operator>>(istream& in, Record& r){
         double ang, rad;
         if(in >> ang >> rad){
             if(ang > 0 && ang <= 360 && rad > 0){
@@ -45,14 +47,20 @@ struct Record{
                 r.radius = rad;
             }
             else{
-                in.setstate(std::ios_base::failbit);
+                in.setstate(ios_base::failbit);
             }
         }
         return in;
     }
 
-    bool operator==(const Record &other) const {
-        return getField() == other.getField();
+    static string inputFormat(){
+        return "<angle> <radius>  (e.g. 123.5  42.8)";
     }
+
+
+    void print(){
+        cout << *this << " [" << getField() << "]";
+    }
+
 };
 SortingMode Record::mode;

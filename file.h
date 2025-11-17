@@ -19,6 +19,22 @@ class File {
     ofstream writer;
     int mode;
     int linesRead = 0;
+    
+    void changeMode(int m){
+        if(mode == READ){
+            reader.close();
+        }
+        else if(mode == WRITE){
+            writer.close();
+        }
+        mode = m;
+        if(mode == READ){
+            reader.open(filename, ios::binary);
+        }
+        else if(mode == WRITE){
+            writer.open(filename, ios::app);
+        }
+    }
 
 public:
     File(string filename){
@@ -80,22 +96,6 @@ public:
             writer << record << "\n";
         }
     }
-
-    void changeMode(int m){
-        if(mode == READ){
-            reader.close();
-        }
-        else if(mode == WRITE){
-            writer.close();
-        }
-        mode = m;
-        if(mode == READ){
-            reader.open(filename, ios::binary);
-        }
-        else if(mode == WRITE){
-            writer.open(filename, ios::app);
-        }
-    }
     
     void close(){
         if(mode != IDLE){
@@ -112,7 +112,8 @@ public:
             streampos position = reader.tellg();
             T record;  
             while(reader >> record){
-                cout << record << "\n";
+                record.print();
+                cout << "\n";
             }
             reader.close();
             reader.open(filename, ios::binary);
@@ -125,7 +126,8 @@ public:
             fstream temp(filename);
             T record;
             while(temp >> record){
-                cout << record << "\n";
+                record.print();
+                cout << "\n";
             }
             temp.close();
         }
