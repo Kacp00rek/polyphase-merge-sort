@@ -2,6 +2,7 @@
 #include <vector>
 #include <random>
 #include <limits>
+#include <algorithm>
 #include "file.h"
 #include "record.h"
 #include "buffer.h"
@@ -24,7 +25,6 @@ struct ProgramInfo{
 
 struct SetupResult{
     ProgramInfo settings;
-    vector<File<RecordType>> tapes;
     vector<Buffer<RecordType>> buffers;
 };
 
@@ -64,7 +64,7 @@ void printFiles(vector<Buffer<RecordType>> &buffers){
     }
 }
 
-void divide(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, ProgramInfo &settings, pair<int,int> fib){
+void divide(vector<Buffer<RecordType>> &buffers, ProgramInfo &settings, pair<int,int> fib){
 
     int runCounter = 0;
     optional<RecordType> previous;
@@ -81,7 +81,7 @@ void divide(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers
         buffers[currTape].write(record);
         previous = record;
     }
-    tapes[0].clear();
+    buffers[0].getFile().clear();
     buffers[1].flush();
     buffers[2].flush();
     for(auto &buf : buffers){
@@ -135,11 +135,11 @@ void mergeRuns(Buffer<RecordType>& A, Buffer<RecordType>& B, Buffer<RecordType>&
 
 }
 
-void finalizePhase(int &A, int &B, int &C, vector<Buffer<RecordType>> &buffers, vector<File<RecordType>> &tapes, pair<int, int> &fib, int &phaseCounter){
+void finalizePhase(int &A, int &B, int &C, vector<Buffer<RecordType>> &buffers, pair<int, int> &fib, int &phaseCounter){
     buffers[C].flush();
     buffers[C].reset();
     buffers[B].reset();
-    tapes[B].clear();
+    buffers[B].getFile().clear();
 
     A = (A + 2) % 3;
     B = (B + 2) % 3;
@@ -149,7 +149,7 @@ void finalizePhase(int &A, int &B, int &C, vector<Buffer<RecordType>> &buffers, 
     phaseCounter++;
 }
 
-int merge(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, pair<int, int> fib, ProgramInfo &settings){
+int merge(vector<Buffer<RecordType>> &buffers, pair<int, int> fib, ProgramInfo &settings){
     int C = 0, A = 1, B = 2;
     int phaseCounter = 0;
 
@@ -158,19 +158,19 @@ int merge(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, 
             mergeRuns(buffers[A], buffers[B], buffers[C]);
         }
         
-        finalizePhase(A, B, C, buffers, tapes, fib, phaseCounter);
+        finalizePhase(A, B, C, buffers, fib, phaseCounter);
 
         if(settings.printing){
             logPhase(phaseCounter, buffers);
         }
     }
 
-    tapes[B].remove();
-    tapes[C].remove();
+    buffers[B].getFile().remove();
+    buffers[C].getFile().remove();
     buffers[A].reset();
 
     if(A != 0){
-        tapes[A].rename(tapes[0].getName());
+        buffers[A].getFile().rename(buffers[0].getFile().getName());
     }
 
     return phaseCounter;
@@ -321,21 +321,16 @@ SetupResult setup() {
     string filename1 = settings.filename;
     string filename2 = "tape2.txt";
     string filename3 = "tape3.txt";
-
-    vector<File<RecordType>> tapes;
-    tapes.emplace_back(filename1);
-    tapes.emplace_back(filename2);
-    tapes.emplace_back(filename3);
     
     vector<Buffer<RecordType>> buffers;
-    for(auto &tape : tapes){
-        buffers.emplace_back(tape, settings.b);
-    }
+    buffers.emplace_back(make_unique<File<RecordType>>(filename1), settings.b); 
+    buffers.emplace_back(make_unique<File<RecordType>>(filename2), settings.b);
+    buffers.emplace_back(make_unique<File<RecordType>>(filename3), settings.b);
 
-    return {move(settings), move(tapes), move(buffers)};
+    return {move(settings), move(buffers)};
 }
 
-int sort(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, ProgramInfo &settings){
+int sort(vector<Buffer<RecordType>> &buffers, ProgramInfo &settings){
     
     cout << "\n--- SORTING BEGIN ---\n";
     int runs = countRuns(buffers[0]);
@@ -343,13 +338,17 @@ int sort(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, P
     pair<int,int> fib = getFib(runs);
     int phases = 0;
     if(fib.second != 0){
-        divide(tapes, buffers, settings, fib);
-        phases = merge(tapes, buffers, fib, settings);
+        divide(buffers, settings, fib);
+        phases = merge(buffers, fib, settings);
+    }
+    else{
+        buffers[1].getFile().remove();
+        buffers[2].getFile().remove();
     }
     cout << "\n--- SORTING COMPLETE ---\n";
 
     if(settings.beforeAndAfter){
-        string filename = tapes[0].getName();
+        string filename = buffers[0].getFile().getName();
         printInputFile(filename);
         cout << "\n";
     }
@@ -359,14 +358,14 @@ int sort(vector<File<RecordType>> &tapes, vector<Buffer<RecordType>> &buffers, P
 
 void stats(ProgramInfo &settings, int phases){
     cout << "READS: " << Buffer<RecordType>::reads << "\n";
-    cout << "WRITES: " << Buffer<RecordType>::writes <<"\n";
+    cout << "WRITES: " << Buffer<RecordType>::writes << "\n";
     cout << "PHASES: " << phases;
 }
 
 int main(){
 
-    auto [settings, tapes, buffers] = setup();
-    int phases = sort(tapes, buffers, settings);
+    auto [settings, buffers] = setup();
+    int phases = sort(buffers, settings);
     stats(settings, phases);
 
     return 0;

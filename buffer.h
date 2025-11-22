@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <vector>
 #include <optional>
 #include "file.h"
@@ -7,7 +8,7 @@ using namespace std;
 
 template <typename T>
 class Buffer {
-    File<T> &file;
+    unique_ptr<File<T>> file;
     int capacity; 
     int currRecord;
     bool end;
@@ -17,7 +18,8 @@ public:
     static int reads;
     static int writes;
 
-    Buffer(File<T> &f, int cap) : file(f){
+    Buffer(unique_ptr<File<T>> f, int cap){
+        file = move(f);
         capacity = cap;
         currRecord = 0;
         end = false;
@@ -29,7 +31,7 @@ public:
             if(end){
                 return nullopt;
             }
-            records = file.getRecords(capacity);
+            records = file->getRecords(capacity);
             currRecord = 0;
             if(records.size() < capacity){
                 end = true;
@@ -43,6 +45,10 @@ public:
         return records[currRecord++];
     }
 
+    File<T>& getFile(){
+        return *file;
+    }
+
     void write(T record){
         records.push_back(record);
         if(records.size() == capacity){
@@ -51,25 +57,25 @@ public:
     }
 
     void reset(){
-        file.close();
+        file->close();
         end = false;
         records.clear();
         currRecord = 0;
     }
 
     void print(){
-        cout << file.getName() << ":\n";
+        cout << file->getName() << ":\n";
         for(int i = currRecord; i<records.size(); i++){
             records[i].print();
             cout << "\n";
         }
-        file.print();
+        file->print();
     }
 
     void flush(){
         if(records.size() > 0){
             writes++;
-            file.write(records);
+            file->write(records);
             records.clear();
         }
     }
