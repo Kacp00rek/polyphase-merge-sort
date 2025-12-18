@@ -300,7 +300,7 @@ ProgramInfo menu(){
         filename = getExistingFilename();
     }
     else{
-        filename = "input.txt";
+        filename = "../data/input.txt";
         createInputFile(filename);
     }
     bool ascending = pickOption("Choose sorting order (1 = ascending, 2 = descending)", {"1", "2"}) == "1"; 
@@ -319,8 +319,8 @@ SetupResult setup() {
     ProgramInfo settings = menu();
 
     string filename1 = settings.filename;
-    string filename2 = "tape2.txt";
-    string filename3 = "tape3.txt";
+    string filename2 = "../data/tape2.txt";
+    string filename3 = "../data/tape3.txt";
     
     vector<Buffer<RecordType>> buffers;
     buffers.emplace_back(make_unique<File<RecordType>>(filename1), settings.b); 
