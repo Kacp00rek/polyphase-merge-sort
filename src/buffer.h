@@ -9,7 +9,7 @@ using namespace std;
 template <typename T>
 class Buffer {
     unique_ptr<File<T>> file;
-    int capacity; 
+    int capacity;
     int currRecord;
     bool end;
     vector<T> records;
@@ -79,7 +79,7 @@ public:
             records.clear();
         }
     }
-    
+
     void reRead(){
         currRecord--;
     }

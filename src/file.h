@@ -19,7 +19,7 @@ class File {
     ofstream writer;
     int mode;
     int linesRead = 0;
-    
+
     void changeMode(int m){
         if(mode == READ){
             reader.close();
@@ -65,7 +65,7 @@ public:
         }
         filesystem::remove(filename);
     }
-    
+
     void clear(){
         if(mode != IDLE){
             changeMode(IDLE);
@@ -96,7 +96,7 @@ public:
             writer << record << "\n";
         }
     }
-    
+
     void close(){
         if(mode != IDLE){
             changeMode(IDLE);
@@ -110,7 +110,7 @@ public:
     void print(){
         if(mode == READ){
             streampos position = reader.tellg();
-            T record;  
+            T record;
             while(reader >> record){
                 record.print();
                 cout << "\n";

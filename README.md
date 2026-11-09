@@ -53,8 +53,8 @@ To understand how this algorithm works, you need to know two terms:
 4. **Logging**: Toggle phase-by-phase visualization of tape contents
 
 ```bash
-g++ -O3 main.cpp -o main
-./main
+g++ -O3 src/main.cpp -o build/main
+build/main
 ```
 
 **Autor:** Kacper Grzelakowski  

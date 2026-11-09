@@ -50,7 +50,7 @@ int countRuns(Buffer<RecordType> &buff){
     while(auto temp = buff.next()){
         RecordType record = *temp;
         if(record < previous){
-            counter++;  
+            counter++;
         }
         previous = record;
     }
@@ -157,7 +157,7 @@ int merge(vector<Buffer<RecordType>> &buffers, pair<int, int> fib, ProgramInfo &
         for(int i = 0; i < fib.second; i++){
             mergeRuns(buffers[A], buffers[B], buffers[C]);
         }
-        
+
         finalizePhase(A, B, C, buffers, fib, phaseCounter);
 
         if(settings.printing){
@@ -230,7 +230,7 @@ void inputDataIntoFile(string &filename){
     string endKeyword = "end";
     cout << "Enter records (one per line). Type '" << endKeyword << "' to finish\n";
     cout << "Record format: " << RecordType::inputFormat() << "\n";
-    ofstream file(filename);       
+    ofstream file(filename);
     string line;
     getline(cin, line);
     while(true){
@@ -295,17 +295,17 @@ ProgramInfo menu(){
     string filename;
     int b = getIntInput("Enter blocking factor b (>0)");
 
-    bool existingFile = pickOption("Load data from an existing file? (y/n)", {"y", "n"}) == "y";   
+    bool existingFile = pickOption("Load data from an existing file? (y/n)", {"y", "n"}) == "y";
     if(existingFile){
         filename = getExistingFilename();
     }
     else{
-        filename = "../data/input.txt";
+        filename = "data/input.txt";
         createInputFile(filename);
     }
-    bool ascending = pickOption("Choose sorting order (1 = ascending, 2 = descending)", {"1", "2"}) == "1"; 
+    bool ascending = pickOption("Choose sorting order (1 = ascending, 2 = descending)", {"1", "2"}) == "1";
     RecordType::mode = ascending ? ASC : DESC;
-    bool printing = pickOption("Do you want to print your files after every phase? (y/n)", {"y", "n"}) == "y"; 
+    bool printing = pickOption("Do you want to print your files after every phase? (y/n)", {"y", "n"}) == "y";
     bool afterAndBefore = pickOption("Display the file before and after sorting? (y/n)", {"y", "n"}) == "y";
 
     if(afterAndBefore){
@@ -319,19 +319,19 @@ SetupResult setup() {
     ProgramInfo settings = menu();
 
     string filename1 = settings.filename;
-    string filename2 = "../data/tape2.txt";
-    string filename3 = "../data/tape3.txt";
-    
+    string filename2 = "data/tape2.txt";
+    string filename3 = "data/tape3.txt";
+
     vector<Buffer<RecordType>> buffers;
-    buffers.emplace_back(make_unique<File<RecordType>>(filename1), settings.b); 
+    buffers.emplace_back(make_unique<File<RecordType>>(filename1), settings.b);
     buffers.emplace_back(make_unique<File<RecordType>>(filename2), settings.b);
     buffers.emplace_back(make_unique<File<RecordType>>(filename3), settings.b);
 
-    return {move(settings), move(buffers)};
+    return {std::move(settings), std::move(buffers)};
 }
 
 int sort(vector<Buffer<RecordType>> &buffers, ProgramInfo &settings){
-    
+
     cout << "\n--- SORTING BEGIN ---\n";
     int runs = countRuns(buffers[0]);
     buffers[0].reset();

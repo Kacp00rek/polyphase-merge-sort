@@ -1,3 +1,7 @@
 .vscode
 *.txt
 *.exe
+build/*
+!build/.gitkeep
+data/*
+!data/.gitkeep
